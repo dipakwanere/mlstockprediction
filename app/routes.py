@@ -29,6 +29,21 @@ def health():
     return jsonify({"status": "ok"})
 
 
+@api_bp.route("/", methods=["GET"])
+def index():
+    """Base endpoint listing available routes."""
+    return jsonify(
+        {
+            "service": "mlops-stock-prediction",
+            "endpoints": {
+                "health": "/health",
+                "predict_price (POST)": "/predict_price",
+                "segment (POST)": "/segment",
+            },
+        }
+    )
+
+
 @api_bp.route("/predict_price", methods=["POST"])
 def predict_price():
     data = request.get_json(silent=True)
