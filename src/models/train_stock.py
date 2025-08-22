@@ -7,13 +7,15 @@ def featurize(df, lags=5):
     X = []
     y = []
     # Support pandas DataFrame or plain dict/list for 'close'
-    closes_obj = df['close'] if isinstance(df, dict) or hasattr(df, '__getitem__') else None
+    closes_obj = (
+        df["close"] if isinstance(df, dict) or hasattr(df, "__getitem__") else None
+    )
     if closes_obj is None:
         # attempt attribute access
-        closes_obj = getattr(df, 'close', None)
+        closes_obj = getattr(df, "close", None)
 
     # extracts values: if object has .values use it, else assume it's list-like
-    if hasattr(closes_obj, 'values'):
+    if hasattr(closes_obj, "values"):
         closes = list(closes_obj.values)
     else:
         closes = list(closes_obj)
