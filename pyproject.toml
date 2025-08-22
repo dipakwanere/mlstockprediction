@@ -1,0 +1,5 @@
+[tool.poetry]
+name = "stock-mlops-template"
+version = "0.1.0"
+description = "ML-Ops template for stock prediction and segmentation"
+authors = ["Your Name <you@example.com>"]
