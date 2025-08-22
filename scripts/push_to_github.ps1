@@ -7,8 +7,23 @@ if (-not $RemoteUrl) {
     exit 1
 }
 
-git remote add origin $RemoteUrl 2>$null
+# Check if remote 'origin' exists
+$existing = git remote get-url origin 2>$null
+if ($LASTEXITCODE -eq 0) {
+    Write-Host "Remote 'origin' already exists: $existing"
+    if ($existing -ne $RemoteUrl) {
+        Write-Host "Updating origin to $RemoteUrl"
+        git remote set-url origin $RemoteUrl
+    }
+} else {
+    git remote add origin $RemoteUrl
+}
+
 git branch -M main
-git push -u origin main
+$push = git push -u origin main
+if ($LASTEXITCODE -ne 0) {
+    Write-Host "Push failed. See git output above."
+    exit 1
+}
 
 Write-Host "Pushed to $RemoteUrl"
