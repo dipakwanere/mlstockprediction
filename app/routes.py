@@ -1,10 +1,20 @@
 from flask import Blueprint, request, jsonify
-import joblib
 import os
+import pickle
 
 api_bp = Blueprint('api', __name__)
 
 MODEL_PATH = os.path.join(os.path.dirname(__file__), '..', 'model_artifacts', 'stock_model.pkl')
+
+
+def _load_model(path):
+    # Try joblib first (faster for sklearn objects), fallback to pickle
+    try:
+        import joblib
+        return joblib.load(path)
+    except Exception:
+        with open(path, 'rb') as f:
+            return pickle.load(f)
 
 
 @api_bp.route('/health', methods=['GET'])
@@ -15,17 +25,22 @@ def health():
 @api_bp.route('/predict_price', methods=['POST'])
 def predict_price():
     data = request.json
-    # Expect feature list or last N prices; here we'll accept a simple numeric feature vector
     features = data.get('features')
     if features is None:
         return jsonify({'error': 'missing features'}), 400
 
     if os.path.exists(MODEL_PATH):
-        model = joblib.load(MODEL_PATH)
-        pred = model.predict([features])
-        return jsonify({'prediction': float(pred[0])})
+        model = _load_model(MODEL_PATH)
+        try:
+            pred = model.predict([features])
+            return jsonify({'prediction': float(pred[0])})
+        except Exception:
+            # If model is a simple callable object
+            try:
+                return jsonify({'prediction': float(model.predict(features))})
+            except Exception:
+                return jsonify({'error': 'model prediction failed'}), 500
     else:
-        # fallback mock prediction
         return jsonify({'prediction': sum(features) / len(features)})
 
 
@@ -36,12 +51,15 @@ def segment():
     if X is None:
         return jsonify({'error': 'missing data'}), 400
 
-    # Use a simple KMeans saved model
     CLUSTER_PATH = os.path.join(os.path.dirname(__file__), '..', 'model_artifacts', 'seg_model.pkl')
     if os.path.exists(CLUSTER_PATH):
-        km = joblib.load(CLUSTER_PATH)
-        labels = km.predict(X)
-        return jsonify({'labels': labels.tolist()})
+        km = _load_model(CLUSTER_PATH)
+        try:
+            labels = km.predict(X)
+            # ensure list
+            return jsonify({'labels': list(map(int, labels))})
+        except Exception:
+            # fallback: naive labels
+            return jsonify({'labels': [0 for _ in X]})
     else:
-        # naive segmentation: assign 0 to all
         return jsonify({'labels': [0 for _ in X]})
